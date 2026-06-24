@@ -2,15 +2,27 @@ import streamlit as st
 import requests
 
 # =========================
-# CONFIG UI
+# CONFIG
 # =========================
-st.set_page_config(page_title="KUS COMPASS", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="KUS COMPASS QUIZ", page_icon="🎓", layout="wide")
 
 st.markdown("""
 <style>
-body {background-color:white;}
-.title {text-align:center;font-size:40px;font-weight:bold;color:#7C3AED;}
-.subtitle {text-align:center;color:#16A34A;margin-bottom:20px;}
+.title {
+    text-align:center;
+    font-size:42px;
+    font-weight:800;
+    color:#7C3AED;
+}
+
+.card {
+    background:#F9FAFB;
+    padding:20px;
+    border-radius:12px;
+    border:1px solid #E5E7EB;
+    margin-bottom:15px;
+}
+
 .stButton>button {
     background: linear-gradient(90deg,#22C55E,#7C3AED);
     color:white;
@@ -21,94 +33,99 @@ body {background-color:white;}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">🎓 KUS COMPASS</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">AI แนะแนวการศึกษา</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">🎓 KUS COMPASS QUIZ</div>', unsafe_allow_html=True)
 
 # =========================
-# MENU (FIX ERROR ตรงนี้)
-# =========================
-menu = st.sidebar.radio("📌 Menu", ["🎓 แนะแนว", "📊 Dashboard"])
-
-# =========================
-# GOOGLE SHEET WEBHOOK
+# GOOGLE SHEET
 # =========================
 GOOGLE_SHEET_WEBHOOK = "https://script.google.com/macros/s/AKfycby1F5MUZzVT_BbindiQZMVIEsxNK9lrWbBhIC_V38leA-3DZWIS94bhb3vNQoOYWJkfuA/exec"
 
-def send_to_sheet(name, gpa, interest):
+def send_to_sheet(data):
     try:
-        requests.post(
-            GOOGLE_SHEET_WEBHOOK,
-            json={"name": name, "gpa": gpa, "interest": interest},
-            timeout=10
-        )
+        requests.post(GOOGLE_SHEET_WEBHOOK, json=data, timeout=10)
     except:
         pass
 
 # =========================
-# AI LOGIC (SAFE)
+# AI SUMMARY
 # =========================
-def smart_guidance(name, gpa, interest):
+def ai_result(data):
 
-    text = interest.lower()
+    text = " ".join([
+        str(data["subjects"]),
+        str(data["activities"]),
+        str(data["personality"])
+    ]).lower()
 
-    sport = sum(k in text for k in ["กีฬา","ฟุตบอล","บาส","วิ่ง"])
-    tech = sum(k in text for k in ["คอม","code","python","ai"])
-    art = sum(k in text for k in ["ดนตรี","เพลง","วาด","design"])
-    lang = sum(k in text for k in ["ภาษา","english","พูด"])
-    biz = sum(k in text for k in ["ขาย","ธุรกิจ","การตลาด"])
-
-    scores = {
-        "กีฬา": sport,
-        "เทค": tech,
-        "ศิลป์": art,
-        "ภาษา": lang,
-        "ธุรกิจ": biz
+    score = {
+        "วิศวะ/IT": sum(k in text for k in ["คอม","code","python","ai","โปรแกรม"]),
+        "ศิลปะ": sum(k in text for k in ["ดนตรี","เพลง","วาด","design"]),
+        "กีฬา": sum(k in text for k in ["กีฬา","ฟุตบอล","บาส"]),
+        "ภาษา": sum(k in text for k in ["ภาษา","english","พูด"]),
+        "ธุรกิจ": sum(k in text for k in ["ขาย","ธุรกิจ","การตลาด"])
     }
 
-    top = sorted(scores.items(), key=lambda x: x[1], reverse=True)[0][0]
+    top = sorted(score.items(), key=lambda x: x[1], reverse=True)
 
     return f"""
-📊 ผลวิเคราะห์
+<div class="card">
 
-ชื่อ: {name}
-GPA: {gpa}
-ความสนใจ: {interest}
+<h3>📊 ผลวิเคราะห์</h3>
+
+👤 {data['name']}  
+📈 GPA: {data['gpa']}
 
 ---
 
-สายที่เหมาะ: {top}
+🏆 สายที่เหมาะที่สุด: <b>{top[0][0]}</b>
 
-✔ วิเคราะห์เรียบร้อย
+</div>
 """
 
 # =========================
-# PAGE 1
+# QUIZ FORM
 # =========================
-if menu == "🎓 แนะแนว":
+st.markdown("### 📋 แบบทดสอบแนะแนว")
 
-    st.subheader("📋 กรอกข้อมูล")
+name = st.text_input("ชื่อ")
+gpa = st.selectbox("GPA", ["3.5-4.0","3.0-3.49","2.5-2.99","2.0-2.49"])
 
-    name = st.text_input("ชื่อ")
-    gpa = st.text_input("GPA")
-    interest = st.text_area("ความสนใจ")
+st.markdown("#### 📚 วิชาที่ชอบ")
+subjects = st.multiselect(
+    "",
+    ["คณิต","วิทย์","อังกฤษ","คอม","ศิลปะ","สังคม","ภาษา"]
+)
 
-    if st.button("🚀 วิเคราะห์"):
+st.markdown("#### 🎯 กิจกรรมที่ชอบ")
+activities = st.multiselect(
+    "",
+    ["กีฬา","เกม","ดนตรี","วาดภาพ","โค้ด","ธุรกิจ","Content"]
+)
 
-        if name and gpa and interest:
-
-            send_to_sheet(name, gpa, interest)
-
-            result = smart_guidance(name, gpa, interest)
-
-            st.success("สำเร็จ")
-            st.markdown(result)
-
-        else:
-            st.warning("กรอกข้อมูลให้ครบ")
+personality = st.text_area("อธิบายตัวเอง")
 
 # =========================
-# PAGE 2
+# SUBMIT
 # =========================
-elif menu == "📊 Dashboard":
-    st.subheader("📊 Dashboard")
-    st.info("ยังไม่มี data.csv")
+if st.button("🚀 ส่งแบบทดสอบ + วิเคราะห์"):
+
+    if not name:
+        st.warning("กรอกชื่อก่อน")
+    else:
+
+        data = {
+            "name": name,
+            "gpa": gpa,
+            "subjects": subjects,
+            "activities": activities,
+            "personality": personality
+        }
+
+        # ส่ง Google Sheet
+        send_to_sheet(data)
+
+        # วิเคราะห์ AI
+        result = ai_result(data)
+
+        st.success("วิเคราะห์เสร็จแล้ว")
+        st.markdown(result, unsafe_allow_html=True)
