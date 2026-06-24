@@ -4,14 +4,38 @@ import requests
 import json
 
 # =========================
-# CONFIG
+# PAGE CONFIG (UI)
 # =========================
-st.set_page_config(page_title="KUS COMPASS", layout="wide")
-
-st.title("🎓 KUS COMPASS - AI แนะแนว + Dashboard + Google Sheet")
+st.set_page_config(
+    page_title="KUS COMPASS",
+    page_icon="🎓",
+    layout="wide"
+)
 
 # =========================
-# LOAD CSV
+# HEADER UI
+# =========================
+st.markdown("""
+    <style>
+    .title {
+        font-size:40px;
+        font-weight:bold;
+        text-align:center;
+        color:#4F8BF9;
+    }
+    .subtitle {
+        text-align:center;
+        color:gray;
+        margin-bottom:30px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="title">🎓 KUS COMPASS</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">ระบบแนะแนวการศึกษา + วิเคราะห์ความถนัด</div>', unsafe_allow_html=True)
+
+# =========================
+# LOAD DATA
 # =========================
 def load_data():
     try:
@@ -24,27 +48,24 @@ df = load_data()
 # =========================
 # GOOGLE SHEET WEBHOOK
 # =========================
-GOOGLE_SHEET_WEBHOOK = "ใส่_URL_APPS_SCRIPT_ตรงนี้"
+GOOGLE_SHEET_WEBHOOK = "ใส่_URL_APPS_SCRIPT"
 
 def send_to_sheet(name, gpa, interest):
     try:
-        payload = {
-            "name": name,
-            "gpa": gpa,
-            "interest": interest
-        }
-
         requests.post(
             GOOGLE_SHEET_WEBHOOK,
-            data=json.dumps(payload),
-            headers={"Content-Type": "application/json"},
+            json={
+                "name": name,
+                "gpa": gpa,
+                "interest": interest
+            },
             timeout=10
         )
     except:
         pass
 
 # =========================
-# SMART AI (NO ERROR VERSION)
+# SMART AI (SCORING SYSTEM)
 # =========================
 def smart_guidance(name, gpa, interest):
 
@@ -53,71 +74,83 @@ def smart_guidance(name, gpa, interest):
     sport = 0
     tech = 0
     art = 0
+    language = 0
     business = 0
 
-    # scoring
-    if "กีฬา" in text or "ฟุตบอล" in text or "บาส" in text:
-        sport += 100
+    # keywords
+    for k in ["กีฬา","ฟุตบอล","บาส","วิ่ง","fitness"]:
+        if k in text:
+            sport += 100
 
-    if "คอม" in text or "code" in text or "โปรแกรม" in text:
-        tech += 100
+    for k in ["คอม","code","โปรแกรม","ai","python"]:
+        if k in text:
+            tech += 100
 
-    if "ดนตรี" in text or "เพลง" in text:
-        art += 100
+    for k in ["ดนตรี","เพลง","วาด","design"]:
+        if k in text:
+            art += 100
 
-    if "ภาษา" in text or "english" in text:
-        art += 50
+    for k in ["ภาษา","english","พูด"]:
+        if k in text:
+            language += 100
 
-    if "ขาย" in text or "ธุรกิจ" in text:
-        business += 100
+    for k in ["ขาย","ธุรกิจ","การตลาด"]:
+        if k in text:
+            business += 100
+
+    scores = {
+        "กีฬา": sport,
+        "เทค": tech,
+        "ศิลป์": art,
+        "ภาษา": language,
+        "ธุรกิจ": business
+    }
+
+    top = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
     result = f"""
-📊 วิเคราะห์นักเรียน: {name}
+# 📊 ผลวิเคราะห์
 
-GPA: {gpa}
-ความสนใจ: {interest}
+👤 ชื่อ: {name}  
+📈 GPA: {gpa}  
+🎯 ความสนใจ: {interest}
 
 ---
 
 """
 
-    if sport >= max(tech, art, business):
+    if top[0][0] == "กีฬา":
         result += """
-🏆 คณะที่เหมาะ:
+## 🏆 สายที่เหมาะ: กีฬา
+
+🎓 คณะ:
 - วิทยาศาสตร์การกีฬา
 - พลศึกษา
 - Sport Management
-- นิเทศศาสตร์สายกีฬา
 
-🎯 อาชีพ:
+💼 อาชีพ:
 - นักกีฬา
 - โค้ช
 - Sport Analyst
-- Content กีฬา
-
-📌 เหตุผล:
-เหมาะกับกิจกรรมร่างกาย + การแข่งขัน
 
 🛤 Roadmap:
 - ฝึกกีฬาเฉพาะทาง
-- ฟิตเนส / โภชนาการ
-- แข่ง / ทำ portfolio กีฬา
+- ฟิตเนส + โภชนาการ
+- ลงแข่งจริง
 """
 
-    elif tech > sport:
+    elif top[0][0] == "เทค":
         result += """
-💻 คณะที่เหมาะ:
+## 💻 สายที่เหมาะ: เทคโนโลยี
+
+🎓 คณะ:
 - วิศวะคอม
 - IT
 - Data Science
 
-🎯 อาชีพ:
+💼 อาชีพ:
 - Programmer
 - Developer
-- Data Analyst
-
-📌 เหตุผล:
-เหมาะกับ logic + เทคโนโลยี
 
 🛤 Roadmap:
 - Python
@@ -125,89 +158,91 @@ GPA: {gpa}
 - Project
 """
 
-    elif art > sport:
+    elif top[0][0] in ["ศิลป์","ภาษา"]:
         result += """
-🎨 คณะที่เหมาะ:
-- นิเทศ
-- ดนตรี
+## 🎨 สายที่เหมาะ: ศิลป์ / ภาษา
+
+🎓 คณะ:
+- นิเทศศาสตร์
+- อักษรศาสตร์
 - ภาษา
 
-🎯 อาชีพ:
+💼 อาชีพ:
 - Content Creator
 - Designer
-- นักดนตรี
-
-📌 เหตุผล:
-เหมาะกับ creativity + การสื่อสาร
+- Translator
 
 🛤 Roadmap:
 - Portfolio
 - ฝึกสื่อสาร
+- ทำ content
 """
 
     else:
         result += """
-📌 คณะที่เหมาะ:
-- บริหารธุรกิจ
-- มนุษยศาสตร์
+## 📌 สายที่เหมาะ: ธุรกิจ / ทั่วไป
 
-🎯 อาชีพ:
+🎓 คณะ:
+- บริหารธุรกิจ
+- การตลาด
+
+💼 อาชีพ:
+- Marketing
 - Business
-- Office work
 
 🛤 Roadmap:
-- ลองค้นหาความสนใจเพิ่ม
+- ฝึกสื่อสาร
+- เรียนรู้การขาย
 """
 
     return result
 
 # =========================
-# MENU
+# SIDEBAR
 # =========================
-menu = st.sidebar.radio(
-    "เลือกโหมด",
-    ["🎓 AI แนะแนว", "📊 Dashboard"]
-)
+menu = st.sidebar.radio("📌 Menu", ["🎓 แนะแนว", "📊 Dashboard"])
 
 # =========================
-# MODE 1: AI
+# PAGE 1 - AI
 # =========================
-if menu == "🎓 AI แนะแนว":
+if menu == "🎓 แนะแนว":
 
-    st.subheader("ระบบแนะแนว KUS COMPASS")
+    st.subheader("ระบบวิเคราะห์ความถนัด")
 
-    name = st.text_input("ชื่อ")
-    gpa = st.text_input("GPA")
-    interest = st.text_area("ความสนใจ")
+    col1, col2 = st.columns(2)
 
-    if st.button("วิเคราะห์"):
+    with col1:
+        name = st.text_input("ชื่อ")
+        gpa = st.text_input("GPA")
 
-        if not name or not gpa or not interest:
-            st.error("กรอกข้อมูลให้ครบ")
-        else:
+    with col2:
+        interest = st.text_area("ความสนใจ (เช่น กีฬา ดนตรี ภาษา)")
 
-            # 🔥 ส่งเข้า Google Sheet
+    if st.button("🚀 วิเคราะห์"):
+
+        if name and gpa and interest:
+
             send_to_sheet(name, gpa, interest)
 
-            # 🔥 วิเคราะห์
             result = smart_guidance(name, gpa, interest)
 
-            st.success("เสร็จแล้ว")
+            st.success("วิเคราะห์เสร็จแล้ว")
             st.markdown(result)
 
+        else:
+            st.warning("กรอกข้อมูลให้ครบ")
+
 # =========================
-# MODE 2: DASHBOARD
+# PAGE 2 - DASHBOARD
 # =========================
 elif menu == "📊 Dashboard":
 
-    st.subheader("ข้อมูลนักเรียน")
+    st.subheader("📊 ข้อมูลนักเรียน")
 
-    if df is None:
-        st.error("ไม่เจอ data.csv")
-    else:
+    if df is not None:
         st.dataframe(df)
 
-        st.markdown("---")
+        st.markdown("### 📈 สถิติ")
 
         if "GPA" in df.columns:
             st.metric("GPA เฉลี่ย", round(df["GPA"].astype(float).mean(), 2))
@@ -221,3 +256,6 @@ elif menu == "📊 Dashboard":
         with col2:
             if "ห้องเรียน ม.4" in df.columns:
                 st.bar_chart(df["ห้องเรียน ม.4"].value_counts())
+
+    else:
+        st.info("ยังไม่มี data.csv")
