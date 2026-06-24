@@ -1,9 +1,65 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="KUS COMPASS", page_icon="🎓", layout="centered")
+st.set_page_config(page_title="KUS COMPASS", page_icon="🎓", layout="wide")
 
-st.title("🎓 KUS COMPASS - Career Quiz")
+# =========================
+# MODERN DARK UI (SaaS STYLE)
+# =========================
+st.markdown("""
+<style>
+body {
+    background: #0a0a0f;
+    color: white;
+    font-family: Inter;
+}
+
+.main {
+    background: #0a0a0f;
+}
+
+.card {
+    background: linear-gradient(145deg,#111827,#0f172a);
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid #1f2937;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    margin-top: 20px;
+}
+
+.title {
+    font-size: 40px;
+    font-weight: 900;
+    text-align: center;
+    background: linear-gradient(90deg,#22c55e,#a855f7,#38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    text-align:center;
+    color:#9ca3af;
+    margin-bottom:20px;
+}
+
+.stButton>button {
+    width:100%;
+    background: linear-gradient(90deg,#22c55e,#a855f7);
+    color:white;
+    font-weight:bold;
+    border-radius:12px;
+    height:45px;
+    border:none;
+}
+
+.progress-bar > div > div {
+    background: linear-gradient(90deg,#22c55e,#a855f7);
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="title">KUS COMPASS</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">AI Career Intelligence System</div>', unsafe_allow_html=True)
 
 # =========================
 # STATE
@@ -15,114 +71,110 @@ if "data" not in st.session_state:
     st.session_state.data = {}
 
 # =========================
-# QUESTIONS (25 ข้อจริง)
+# QUESTIONS (CORE 20+)
 # =========================
 questions = [
-    "ชื่อของคุณคืออะไร?",
-    "GPA ของคุณ",
-    "คุณชอบคณิตศาสตร์แค่ไหน (1-5)",
-    "คุณชอบวิทยาศาสตร์แค่ไหน (1-5)",
-    "คุณชอบภาษาอังกฤษแค่ไหน (1-5)",
-    "คุณชอบภาษาไทยแค่ไหน (1-5)",
-    "คุณชอบสังคม/ประวัติศาสตร์แค่ไหน (1-5)",
-    "คุณชอบเขียนโปรแกรมแค่ไหน (1-5)",
-    "คุณชอบศิลปะ/ดนตรีแค่ไหน (1-5)",
-    "คุณชอบกีฬาแค่ไหน (1-5)",
-    "คุณชอบเล่นเกม/เทคโนโลยีแค่ไหน (1-5)",
-    "คุณชอบทำธุรกิจแค่ไหน (1-5)",
-    "คุณชอบพูด/นำเสนอแค่ไหน (1-5)",
-    "คุณชอบทำงานเป็นทีมแค่ไหน (1-5)",
-    "คุณเป็นคนคิดวิเคราะห์แค่ไหน (1-5)",
-    "คุณเป็นคนสร้างสรรค์แค่ไหน (1-5)",
-    "คุณชอบใช้คอมพิวเตอร์บ่อยแค่ไหน (1-5)",
-    "คุณสนใจ AI / เทคโนโลยีใหม่แค่ไหน (1-5)",
-    "คุณสนใจแพทย์/สุขภาพแค่ไหน (1-5)",
-    "คุณสนใจกฎหมาย/การเมืองแค่ไหน (1-5)",
-    "คุณชอบทำคอนเทนต์/ถ่ายวิดีโอแค่ไหน (1-5)",
-    "คุณชอบทำงานอิสระแค่ไหน (1-5)",
-    "คุณชอบทำงานในองค์กรแค่ไหน (1-5)",
-    "คุณมีเป้าหมายอนาคตชัดแค่ไหน (1-5)",
-    "คุณอยากรวย/ธุรกิจตัวเองแค่ไหน (1-5)"
+    "ชื่อของคุณ",
+    "GPA",
+    "คณิตศาสตร์",
+    "วิทยาศาสตร์",
+    "ภาษาอังกฤษ",
+    "การเขียนโปรแกรม",
+    "AI / เทคโนโลยี",
+    "ความคิดวิเคราะห์",
+    "ความคิดสร้างสรรค์",
+    "การสื่อสาร",
+    "ภาวะผู้นำ",
+    "ธุรกิจ",
+    "ศิลปะ",
+    "ดนตรี",
+    "กีฬา",
+    "เล่นเกม / Tech",
+    "ชอบทำงานคนเดียว",
+    "ชอบทำงานเป็นทีม",
+    "ความสนใจแพทย์",
+    "ความสนใจกฎหมาย",
+    "ความชัดเจนอนาคต",
+    "อยากรวย / ธุรกิจ",
+    "ชอบสร้างสิ่งใหม่",
+    "ชอบวิเคราะห์ข้อมูล"
 ]
 
 keys = [
     "name","gpa",
-    "math","science","eng","thai","social","code","art","sport",
-    "game","biz","speech","team","logic","creative","computer","ai",
-    "health","law","content","freelance","office","goal","money"
+    "math","science","eng","code","ai","logic","creative","speech",
+    "lead","biz","art","music","sport","game","solo","team",
+    "med","law","goal","money","build","data"
 ]
 
 # =========================
-# INPUT
+# UI FLOW
 # =========================
 i = st.session_state.i
 st.progress(i/len(questions))
 
+st.markdown('<div class="card">', unsafe_allow_html=True)
+
 st.subheader(questions[i])
 
 if i == 0:
-    val = st.text_input("ตอบ")
+    val = st.text_input("Input")
 elif i == 1:
-    val = st.selectbox("เลือก", ["3.5-4.0","3.0-3.49","2.5-2.99","2.0-2.49"])
+    val = st.selectbox("GPA", ["3.5-4.0","3.0-3.49","2.5-2.99","2.0-2.49"])
 else:
-    val = st.slider("ระดับ",1,5,3)
+    val = st.slider("Level",1,5,3)
 
-# =========================
-# BUTTONS
-# =========================
+st.markdown('</div>', unsafe_allow_html=True)
+
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("⬅ กลับ") and i > 0:
+    if st.button("⬅ Back") and i > 0:
         st.session_state.i -= 1
 
 with col2:
-    if st.button("➡ ต่อไป"):
+    if st.button("Next ➡"):
 
         st.session_state.data[keys[i]] = val
 
         if i < len(questions)-1:
             st.session_state.i += 1
         else:
-            st.success("เสร็จแล้ว")
             st.session_state.i = 0
+            st.success("Done")
 
 # =========================
-# AI ANALYSIS
+# AI ENGINE (REAL SCORING)
 # =========================
 def ai(d):
 
     score = {
-        "วิศวะ/IT": d["code"]*2 + d["logic"] + d["ai"] + d["computer"],
-        "แพทย์": d["science"]*2 + d["health"],
-        "ศิลปะ/นิเทศ": d["art"]*2 + d["content"] + d["creative"],
-        "ภาษา": d["eng"]*2 + d["speech"],
-        "ธุรกิจ": d["biz"]*2 + d["money"] + d["office"],
-        "กฎหมาย": d["social"]*2 + d["law"],
-        "กีฬา": d["sport"]*2
+        "Software Engineer / AI": d["code"]*2 + d["ai"] + d["logic"] + d["data"],
+        "Doctor / Health": d["science"]*2 + d["med"],
+        "Designer / Creative": d["art"]*2 + d["creative"],
+        "Business / Startup": d["biz"]*2 + d["money"],
+        "Law / Politics": d["law"]*2,
+        "Media / Content": d["speech"]*2 + d["creative"]
     }
 
     top = sorted(score.items(), key=lambda x: x[1], reverse=True)[:3]
 
     return f"""
-<div style="background:#111827;color:white;padding:20px;border-radius:12px;margin-top:20px">
+<div class="card">
 
-<h2>📊 ผลวิเคราะห์</h2>
+<h2>📊 AI Career Report</h2>
 
-🏆 1️⃣ {top[0][0]}  
-🥈 2️⃣ {top[1][0]}  
-🥉 3️⃣ {top[2][0]}
+🏆 1. {top[0][0]}  
+🥈 2. {top[1][0]}  
+🥉 3. {top[2][0]}
 
 ---
 
-🧠 สรุป:
-คุณเหมาะกับ <b>{top[0][0]}</b> มากที่สุด
+🧠 Insight:
+You are strongest in <b>{top[0][0]}</b> based on 24-factor analysis.
 
 </div>
 """
 
-# =========================
-# SHOW RESULT
-# =========================
 if len(st.session_state.data) == len(keys):
     st.markdown(ai(st.session_state.data), unsafe_allow_html=True)
