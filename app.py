@@ -1,13 +1,14 @@
 import streamlit as st
 import pandas as pd
 import requests
+import json
 
 # =========================
 # CONFIG
 # =========================
 st.set_page_config(page_title="KUS COMPASS", layout="wide")
 
-st.title("🎓 KUS COMPASS - AI แนะแนว + Dashboard")
+st.title("🎓 KUS COMPASS - AI แนะแนว + Dashboard + Google Sheet")
 
 # =========================
 # LOAD CSV
@@ -21,62 +22,144 @@ def load_data():
 df = load_data()
 
 # =========================
-# AI CONFIG
+# GOOGLE SHEET WEBHOOK
 # =========================
-HF_TOKEN = "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"
+GOOGLE_SHEET_WEBHOOK = "ใส่_URL_APPS_SCRIPT_ตรงนี้"
 
-# =========================
-# AI FUNCTION
-# =========================
-def ask_ai(prompt):
+def send_to_sheet(name, gpa, interest):
     try:
-        response = requests.post(
-            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct",
-            headers={"Authorization": f"Bearer {HF_TOKEN}"},
-            json={
-                "inputs": prompt,
-                "parameters": {
-                    "max_new_tokens": 500
-                }
-            },
-            timeout=30
+        payload = {
+            "name": name,
+            "gpa": gpa,
+            "interest": interest
+        }
+
+        requests.post(
+            GOOGLE_SHEET_WEBHOOK,
+            data=json.dumps(payload),
+            headers={"Content-Type": "application/json"},
+            timeout=10
         )
-
-        data = response.json()
-
-        if isinstance(data, list) and len(data) > 0:
-            return data[0].get("generated_text", "AI ไม่ตอบ")
-
-        return "⚠️ AI ยังไม่พร้อม / token หรือ model มีปัญหา"
-
-    except Exception as e:
-        return "❌ AI ใช้ไม่ได้\n" + str(e)
+    except:
+        pass
 
 # =========================
-# FALLBACK AI (กันพัง)
+# SMART AI (NO ERROR VERSION)
 # =========================
-def fallback_ai():
-    return """
-📌 ระบบแนะแนวพื้นฐาน KUS COMPASS
+def smart_guidance(name, gpa, interest):
 
-1. คณะที่เหมาะ:
-   - วิศวกรรมคอมพิวเตอร์
-   - IT / Data Science
-   - นิเทศ / ดนตรี (ถ้ามีความสนใจศิลป์)
+    text = interest.lower()
 
-2. อาชีพ:
-   - Programmer
-   - Designer
-   - Content Creator
+    sport = 0
+    tech = 0
+    art = 0
+    business = 0
 
-3. เหตุผล:
-   - ผสมระหว่าง logic + ความคิดสร้างสรรค์
+    # scoring
+    if "กีฬา" in text or "ฟุตบอล" in text or "บาส" in text:
+        sport += 100
 
-4. Roadmap:
-   - ฝึก Python
-   - ทำ Portfolio
-   - ทำโปรเจกต์ GitHub
+    if "คอม" in text or "code" in text or "โปรแกรม" in text:
+        tech += 100
+
+    if "ดนตรี" in text or "เพลง" in text:
+        art += 100
+
+    if "ภาษา" in text or "english" in text:
+        art += 50
+
+    if "ขาย" in text or "ธุรกิจ" in text:
+        business += 100
+
+    result = f"""
+📊 วิเคราะห์นักเรียน: {name}
+
+GPA: {gpa}
+ความสนใจ: {interest}
+
+---
+
 """
+
+    if sport >= max(tech, art, business):
+        result += """
+🏆 คณะที่เหมาะ:
+- วิทยาศาสตร์การกีฬา
+- พลศึกษา
+- Sport Management
+- นิเทศศาสตร์สายกีฬา
+
+🎯 อาชีพ:
+- นักกีฬา
+- โค้ช
+- Sport Analyst
+- Content กีฬา
+
+📌 เหตุผล:
+เหมาะกับกิจกรรมร่างกาย + การแข่งขัน
+
+🛤 Roadmap:
+- ฝึกกีฬาเฉพาะทาง
+- ฟิตเนส / โภชนาการ
+- แข่ง / ทำ portfolio กีฬา
+"""
+
+    elif tech > sport:
+        result += """
+💻 คณะที่เหมาะ:
+- วิศวะคอม
+- IT
+- Data Science
+
+🎯 อาชีพ:
+- Programmer
+- Developer
+- Data Analyst
+
+📌 เหตุผล:
+เหมาะกับ logic + เทคโนโลยี
+
+🛤 Roadmap:
+- Python
+- GitHub
+- Project
+"""
+
+    elif art > sport:
+        result += """
+🎨 คณะที่เหมาะ:
+- นิเทศ
+- ดนตรี
+- ภาษา
+
+🎯 อาชีพ:
+- Content Creator
+- Designer
+- นักดนตรี
+
+📌 เหตุผล:
+เหมาะกับ creativity + การสื่อสาร
+
+🛤 Roadmap:
+- Portfolio
+- ฝึกสื่อสาร
+"""
+
+    else:
+        result += """
+📌 คณะที่เหมาะ:
+- บริหารธุรกิจ
+- มนุษยศาสตร์
+
+🎯 อาชีพ:
+- Business
+- Office work
+
+🛤 Roadmap:
+- ลองค้นหาความสนใจเพิ่ม
+"""
+
+    return result
 
 # =========================
 # MENU
@@ -103,39 +186,11 @@ if menu == "🎓 AI แนะแนว":
             st.error("กรอกข้อมูลให้ครบ")
         else:
 
-            # 🔥 PROMPT (FIXED)
-            prompt = f"""
-คุณคือระบบแนะแนวอาชีพของ KUS COMPASS
+            # 🔥 ส่งเข้า Google Sheet
+            send_to_sheet(name, gpa, interest)
 
-หน้าที่:
-- วิเคราะห์จากข้อมูลนักเรียนอย่างรอบคอบ
-- ห้ามเดาสุ่ม
-- ต้องอิงจากความสนใจจริงเท่านั้น
-
-ข้อมูลนักเรียน:
-ชื่อ: {name}
-GPA: {gpa}
-ความสนใจ: {interest}
-
-กติกา:
-- ถ้าความสนใจไม่เกี่ยวกับวิศวะ/คณิต ห้ามแนะนำวิศวะเป็นอันดับแรก
-- ต้องมีอย่างน้อย 2 สายอาชีพที่แตกต่างกัน
-- ต้องมีสายศิลปะ/ภาษา ถ้ามีข้อมูลเกี่ยวข้อง
-
-กรุณาตอบ:
-1. คณะที่เหมาะสม (อย่างน้อย 2 ตัวเลือก)
-2. อาชีพที่เหมาะสม
-3. เหตุผล
-4. Roadmap
-"""
-
-            with st.spinner("AI กำลังวิเคราะห์..."):
-
-                result = ask_ai(prompt)
-
-                # ถ้า AI ล่ม → ใช้ fallback
-                if "❌" in result or "⚠️" in result:
-                    result = fallback_ai()
+            # 🔥 วิเคราะห์
+            result = smart_guidance(name, gpa, interest)
 
             st.success("เสร็จแล้ว")
             st.markdown(result)
@@ -145,7 +200,7 @@ GPA: {gpa}
 # =========================
 elif menu == "📊 Dashboard":
 
-    st.subheader("📊 ข้อมูลนักเรียน")
+    st.subheader("ข้อมูลนักเรียน")
 
     if df is None:
         st.error("ไม่เจอ data.csv")
@@ -154,7 +209,6 @@ elif menu == "📊 Dashboard":
 
         st.markdown("---")
 
-        # GPA
         if "GPA" in df.columns:
             st.metric("GPA เฉลี่ย", round(df["GPA"].astype(float).mean(), 2))
 
