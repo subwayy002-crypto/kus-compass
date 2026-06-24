@@ -26,7 +26,7 @@ df = load_data()
 HF_TOKEN = "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"
 
 # =========================
-# AI FUNCTION (SAFE VERSION)
+# AI FUNCTION
 # =========================
 def ask_ai(prompt):
     try:
@@ -47,28 +47,33 @@ def ask_ai(prompt):
         if isinstance(data, list) and len(data) > 0:
             return data[0].get("generated_text", "AI ไม่ตอบ")
 
-        return "⚠️ AI ยังโหลดอยู่หรือ token มีปัญหา"
+        return "⚠️ AI ยังไม่พร้อม / token หรือ model มีปัญหา"
 
     except Exception as e:
-        return f"""❌ AI ใช้ไม่ได้ตอนนี้
-
-Error: {e}
-
-👉 ระบบ fallback ทำงานแทน"""
+        return "❌ AI ใช้ไม่ได้\n" + str(e)
 
 # =========================
-# FALLBACK (กันพัง)
+# FALLBACK AI (กันพัง)
 # =========================
-def fallback_ai(prompt):
+def fallback_ai():
     return """
-📌 ระบบแนะแนวพื้นฐาน (Fallback Mode)
+📌 ระบบแนะแนวพื้นฐาน KUS COMPASS
 
-1. คณะที่เหมาะ: วิศวกรรม / IT / Data Science
-2. อาชีพ: Programmer / Engineer / Analyst
-3. เหตุผล: เหมาะกับคนชอบ logic + คณิต + เทคโนโลยี
+1. คณะที่เหมาะ:
+   - วิศวกรรมคอมพิวเตอร์
+   - IT / Data Science
+   - นิเทศ / ดนตรี (ถ้ามีความสนใจศิลป์)
+
+2. อาชีพ:
+   - Programmer
+   - Designer
+   - Content Creator
+
+3. เหตุผล:
+   - ผสมระหว่าง logic + ความคิดสร้างสรรค์
+
 4. Roadmap:
    - ฝึก Python
-   - ฝึก Math / Physics
    - ทำ Portfolio
    - ทำโปรเจกต์ GitHub
 """
@@ -98,28 +103,39 @@ if menu == "🎓 AI แนะแนว":
             st.error("กรอกข้อมูลให้ครบ")
         else:
 
+            # 🔥 PROMPT (FIXED)
             prompt = f"""
-คุณคือที่ปรึกษาแนะแนว
+คุณคือระบบแนะแนวอาชีพของ KUS COMPASS
+
+หน้าที่:
+- วิเคราะห์จากข้อมูลนักเรียนอย่างรอบคอบ
+- ห้ามเดาสุ่ม
+- ต้องอิงจากความสนใจจริงเท่านั้น
 
 ข้อมูลนักเรียน:
 ชื่อ: {name}
 GPA: {gpa}
 ความสนใจ: {interest}
 
-ช่วยวิเคราะห์:
-1. คณะที่เหมาะสม
+กติกา:
+- ถ้าความสนใจไม่เกี่ยวกับวิศวะ/คณิต ห้ามแนะนำวิศวะเป็นอันดับแรก
+- ต้องมีอย่างน้อย 2 สายอาชีพที่แตกต่างกัน
+- ต้องมีสายศิลปะ/ภาษา ถ้ามีข้อมูลเกี่ยวข้อง
+
+กรุณาตอบ:
+1. คณะที่เหมาะสม (อย่างน้อย 2 ตัวเลือก)
 2. อาชีพที่เหมาะสม
 3. เหตุผล
 4. Roadmap
 """
 
-            with st.spinner("AI กำลังคิด..."):
+            with st.spinner("AI กำลังวิเคราะห์..."):
 
                 result = ask_ai(prompt)
 
-                # ถ้า AI พัง → ใช้ fallback
-                if "❌" in result:
-                    result = fallback_ai(prompt)
+                # ถ้า AI ล่ม → ใช้ fallback
+                if "❌" in result or "⚠️" in result:
+                    result = fallback_ai()
 
             st.success("เสร็จแล้ว")
             st.markdown(result)
